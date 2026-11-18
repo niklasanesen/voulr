@@ -10,6 +10,41 @@
     <link href="styles/output.css" rel="stylesheet" />
   </head>
   <body>
-    <h1>hello world</h1>
+    <div class="container mx-auto px-6 xl:max-w-7xl">
+      <header class="flex items-center justify-between py-5 flex-wrap relative">
+        <a href="index.html"><img src="assets/logomark.svg" alt="voulr" /></a>
+        <details
+          class="group contents details-content:w-full md:details-content:contents"
+        >
+          <summary
+            class="list-none [&::-webkit-details-marker]:hidden md:hidden"
+          >
+            <img src="assets/menu.svg" alt="menu" class="group-open:hidden" />
+            <img
+              src="assets/close.svg"
+              alt="close"
+              class="hidden group-open:block"
+            />
+          </summary>
+          <nav class="flex flex-col items-center gap-3 md:contents">
+            <div
+              class="contents md:flex gap-8 absolute left-1/2 -translate-x-1/2"
+            >
+              <a href="#" class="hover:text-voulr">pricing</a>
+              <a
+                href="https://github.com/niklasanesen/voulr"
+                class="hover:text-voulr"
+              >
+                repo
+              </a>
+              <a href="mailto:contact@voulr.com" class="hover:text-voulr">
+                contact
+              </a>
+            </div>
+            <a href="#" class="btn btn-primary duration-300">start now</a>
+          </nav>
+        </details>
+      </header>
+    </div>
   </body>
 </html>
