@@ -1,7 +1,8 @@
 use crate::database::ConnectionPool;
-use axum::{Router, routing::get};
+use axum::{Router, middleware, routing::get};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
+use tower_http::services::ServeDir;
 
 mod auth;
 mod database;
@@ -23,6 +24,7 @@ struct Ctx {
     reqwest: reqwest::Client,
     redis: ConnectionPool,
     app_url: String,
+    landing_url: String,
 }
 
 #[tokio::main]
@@ -31,6 +33,8 @@ async fn main() -> anyhow::Result<()> {
 
     let app_url = env::var("APP_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned());
     let prod = env::var("ENVIRONMENT").unwrap_or_else(|_| "development".to_owned()) == "production";
+    let landing_url =
+        env::var("LANDING_URL").unwrap_or_else(|_| "http://127.0.0.1:8080/landing".to_owned());
 
     let google = oauth_client(
         env::var("GOOGLE_CLIENT_ID")?,
@@ -64,12 +68,24 @@ async fn main() -> anyhow::Result<()> {
         reqwest,
         redis,
         app_url,
+        landing_url,
     };
 
-    let app = Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
+    let protected = Router::new()
+        .route("/", get(|| async { "hello, world!" }))
+        .route_layer(middleware::from_fn_with_state(
+            ctx.clone(),
+            auth::middleware,
+        ));
+
+    let mut app = Router::new()
         .nest("/auth", auth::mount())
+        .merge(protected)
         .with_state(ctx);
+
+    if !prod {
+        app = app.nest_service("/landing", ServeDir::new("landing"));
+    }
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
     println!("listening on http://{}", listener.local_addr()?);

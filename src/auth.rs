@@ -2,8 +2,9 @@ use crate::{Ctx, database::DatabaseConnection, error::AppError};
 use anyhow::Context;
 use axum::{
     Router,
-    extract::{Query, State},
-    response::{IntoResponse, Redirect},
+    extract::{Query, Request, State},
+    middleware::Next,
+    response::{IntoResponse, Redirect, Response},
     routing::get,
 };
 use axum_extra::extract::{
@@ -209,6 +210,7 @@ fn check_csrf_token(jar: &CookieJar, state: &str) -> anyhow::Result<()> {
     anyhow::ensure!(stored_state == state, "csrf token mismatch");
     Ok(())
 }
+
 async fn upsert_user(
     db_conn: &mut MultiplexedConnection,
     provider_key: String,
@@ -254,5 +256,36 @@ async fn set_session(
             SESSION_TTL as i64,
         ))
         .remove(Cookie::build(CSRF_TOKEN).path(path))
-        .remove(Cookie::build(NEXT).path(path)))
+        .remove(Cookie::build(NEXT).path("/auth")))
+}
+
+#[derive(Clone)]
+pub struct UserId(pub Uuid);
+
+pub async fn middleware(
+    jar: CookieJar,
+    DatabaseConnection(mut db_conn): DatabaseConnection,
+    State(Ctx {
+        prod, landing_url, ..
+    }): State<Ctx>,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, AppError> {
+    if let Some(session) = jar.get(SESSION)
+        && let Ok(session_id) = session.value().parse::<Uuid>()
+        && let Some(user_id) = db_conn.get(format!("session:{session_id}")).await?
+    {
+        req.extensions_mut().insert(UserId(user_id));
+        return Ok(next.run(req).await);
+    }
+    let path = req
+        .uri()
+        .path_and_query()
+        .map_or("/", |p| p.as_str())
+        .to_owned();
+    Ok((
+        jar.add(base_cookie(NEXT, path, "/auth", prod, 3600)),
+        Redirect::to(&format!("{landing_url}/login.html")),
+    )
+        .into_response())
 }
