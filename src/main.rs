@@ -2,6 +2,8 @@ use axum::{Router, routing::get};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
 
+mod auth;
+
 type BasicClient = oauth2::basic::BasicClient<
     EndpointSet,
     EndpointNotSet,
@@ -14,6 +16,7 @@ type BasicClient = oauth2::basic::BasicClient<
 struct Ctx {
     google: BasicClient,
     github: BasicClient,
+    prod: bool,
 }
 
 #[tokio::main]
@@ -21,6 +24,7 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     let app_url = env::var("APP_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_owned());
+    let prod = env::var("ENVIRONMENT").unwrap_or_else(|_| "development".to_owned()) == "production";
 
     let google = oauth_client(
         env::var("GOOGLE_CLIENT_ID")?,
@@ -38,10 +42,15 @@ async fn main() -> anyhow::Result<()> {
         format!("{app_url}/auth/github/callback"),
     )?;
 
-    let ctx = Ctx { google, github };
+    let ctx = Ctx {
+        google,
+        github,
+        prod,
+    };
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
+        .nest("/auth", auth::mount())
         .with_state(ctx);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
