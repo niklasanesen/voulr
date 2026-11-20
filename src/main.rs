@@ -1,8 +1,11 @@
+use crate::database::ConnectionPool;
 use axum::{Router, routing::get};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
 
 mod auth;
+mod database;
+mod error;
 
 type BasicClient = oauth2::basic::BasicClient<
     EndpointSet,
@@ -17,6 +20,9 @@ struct Ctx {
     google: BasicClient,
     github: BasicClient,
     prod: bool,
+    reqwest: reqwest::Client,
+    redis: ConnectionPool,
+    app_url: String,
 }
 
 #[tokio::main]
@@ -42,10 +48,22 @@ async fn main() -> anyhow::Result<()> {
         format!("{app_url}/auth/github/callback"),
     )?;
 
+    let reqwest = reqwest::Client::builder()
+        .user_agent("voulr/0.1.0")
+        .redirect(reqwest::redirect::Policy::none())
+        .build()?;
+
+    let redis = bb8::Pool::builder()
+        .build(redis::Client::open(env::var("REDIS_URL")?)?)
+        .await?;
+
     let ctx = Ctx {
         google,
         github,
         prod,
+        reqwest,
+        redis,
+        app_url,
     };
 
     let app = Router::new()
