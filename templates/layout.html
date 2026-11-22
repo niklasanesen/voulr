@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>
+      {% block title %}{% endblock %}
+    </title>
+    <link rel="icon" href="{{ layout.landing_url }}/favicon.ico" sizes="32x32" />
+    <link rel="icon"
+          href="{{ layout.landing_url }}/favicon.svg"
+          type="image/svg+xml" />
+    <link href="{{ layout.landing_url }}/styles/output.css" rel="stylesheet" />
+    <script src="{{ layout.landing_url }}/scripts/htmx.min.js" defer></script>
+  </head>
+  <body hx-boost:inherited="true">
+    <header class="border-b bg-neutral-950 px-6">
+      <div class="flex items-center justify-between py-4 flex-wrap">
+        <a href="/" id="logomark" hx-preserve="true">
+          <img src="{{ layout.landing_url }}/assets/logomark.svg" alt="voulr" />
+        </a>
+        <a href="/settings"
+           class="size-8 rounded-full shrink-0 flex items-center justify-center bg-neutral-800">
+          {{ layout.initial }}
+        </a>
+      </div>
+      <div class="flex gap-8 overflow-x-auto [scrollbar-width:none] -mb-px">
+        <a href="/"
+           class="pb-1 border-b {% if layout.path == "/" %}border-white{% else %}text-neutral-500 hover:text-white{% endif %}">
+          home
+        </a>
+        <a href="/projects"
+           class="pb-1 border-b {% if layout.path.starts_with("/projects") %}border-white{% else %}text-neutral-500 hover:text-white{% endif %}">
+          projects
+        </a>
+        <a href="/domains"
+           class="pb-1 border-b {% if layout.path.starts_with("/domains") %}border-white{% else %}text-neutral-500 hover:text-white{% endif %}">
+          domains
+        </a>
+        <a href="/settings"
+           class="pb-1 border-b {% if layout.path.starts_with("/settings") %}border-white{% else %}text-neutral-500 hover:text-white{% endif %}">
+          settings
+        </a>
+      </div>
+    </header>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,12 +1,18 @@
 use crate::database::ConnectionPool;
-use axum::{Router, middleware, routing::get};
+use axum::{Router, middleware};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
 use tower_http::services::ServeDir;
 
 mod auth;
+mod dashboard;
 mod database;
+mod domains;
 mod error;
+mod layout;
+mod projects;
+mod settings;
+mod user;
 
 type BasicClient = oauth2::basic::BasicClient<
     EndpointSet,
@@ -72,7 +78,10 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let protected = Router::new()
-        .route("/", get(|| async { "hello, world!" }))
+        .merge(dashboard::mount())
+        .nest("/projects", projects::mount())
+        .nest("/domains", domains::mount())
+        .nest("/settings", settings::mount())
         .route_layer(middleware::from_fn_with_state(
             ctx.clone(),
             auth::middleware,
