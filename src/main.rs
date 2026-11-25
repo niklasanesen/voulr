@@ -1,10 +1,11 @@
 use crate::database::ConnectionPool;
-use axum::{Router, middleware};
+use axum::{Router, middleware, routing::get};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
 use tower_http::services::ServeDir;
 
 mod auth;
+mod aws;
 mod dashboard;
 mod database;
 mod domains;
@@ -82,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/projects", projects::mount())
         .nest("/domains", domains::mount())
         .nest("/settings", settings::mount())
+        .route("/aws/connect", get(aws::connect))
         .route_layer(middleware::from_fn_with_state(
             ctx.clone(),
             auth::middleware,
