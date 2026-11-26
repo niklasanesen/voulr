@@ -1,5 +1,8 @@
 use crate::database::ConnectionPool;
-use axum::{Router, middleware, routing::get};
+use axum::{
+    Router, middleware,
+    routing::{get, post},
+};
 use oauth2::{AuthUrl, ClientId, ClientSecret, EndpointNotSet, EndpointSet, RedirectUrl, TokenUrl};
 use std::env;
 use tower_http::services::ServeDir;
@@ -91,6 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut app = Router::new()
         .nest("/auth", auth::mount())
+        .route("/aws/events", post(aws::events))
         .merge(protected)
         .with_state(ctx);
 
